@@ -36,6 +36,7 @@
 module MinisculusLexer where
 
 import Data.List
+import MinisculusPos
 }
 
 %wrapper "monadUserState"
@@ -76,8 +77,10 @@ tokens :-
 {- Lexer Token definitions and main routines -}
 
 -- Token Data Type.
-data Token  = T_Identifier  String
-            | T_Num         Int
+data Token = Token Pos TokenClass deriving (Eq, Show)
+
+data TokenClass  = T_Identifier String
+            | T_Num Int
             | T_If
             | T_Then
             | T_While
@@ -96,19 +99,30 @@ data Token  = T_Identifier  String
             | T_RPar
             | T_Semicolon
             | T_EOF
-            deriving (Eq,Show)
+            deriving (Eq, Show)
 
-alexEOF = return T_EOF
+alexEOF :: Alex Token
+alexEOF = do
+    (p,_,_,_) <- alexGetInput
+    return $ Token (toPos p) T_EOF
+
+toPos :: AlexPosn -> Pos
+toPos (AlexPn _ l c) = Pos (Line l) (Column c)
 
 -- Extracts the token type, returning as an Alex Token datum.
-mkT :: Token -> AlexInput -> Int -> Alex Token
-mkT c _ _ = return c
+mkT :: TokenClass -> AlexInput -> Int -> Alex Token 
+mkT c (p, _, _, _) _ = return $
+    Token (toPos p) c
 
 -- Constructs a T_Identifier token from the currently parsed string.
-identifier (_, _, _, inp) len = return $ T_Identifier (take len inp)
+identifier :: AlexInput -> Int -> Alex Token
+identifier (p, _, _, inp) len = return $ 
+    Token (toPos p) (T_Identifier (take len inp))
 
 -- Constructs a T_Num token from the currently parsed number.
-number (_, _, _, inp) len = return (T_Num (read (take len inp))) 
+number :: AlexInput -> Int -> Alex Token
+number (p, _, _, inp) len = return $
+    Token (toPos p) (T_Num (read $ take len inp))
 
 -- Monad state data type. We only need to keep track of comment depth.
 data AlexUserState = AlexUserState { 
@@ -130,7 +144,7 @@ getCommentDepth = Alex $
     (\st@AlexState{alex_ust=ust} -> Right (st, commentDepth ust))
 
 -- Increases the comment depth by 1.
-incLevel :: AlexInput -> Int -> Alex Token
+incLevel :: AlexInput -> Int -> Alex Token 
 incLevel a d =
     do  cdepth <- getCommentDepth    -- Get comment depth
         setCommentDepth (cdepth + 1) -- Increment comment depth
@@ -138,24 +152,23 @@ incLevel a d =
 
 -- Decreases the comment depth by 1. If this goes below 1, then
 -- the '0' start code is entered and the comment depth is set to 0.
-decLevel :: AlexInput -> Int -> Alex Token
+decLevel :: AlexInput -> Int -> Alex Token 
 decLevel a d =
     do  cdepth <- getCommentDepth    -- Get comment depth
         setCommentDepth (cdepth - 1) -- Decrement comment depth
         if (cdepth <= 1) then do 
             alexSetStartCode 0       -- Reset start code
             setCommentDepth  0       -- Reset comment depth
-            skip a d
+            skip a d 
         else 
             skip a d
 
 -- Raises an alexError with a useful error message indicating the
 -- line and the column of the error, as well as printing the invalid
 -- string.
-lexError :: AlexInput -> Int -> Alex Token
+lexError :: AlexInput -> Int -> Alex Token 
 lexError (p, _, _, inp) len = alexError $ 
-    "Lexical Error at " ++ showPos p ++ " - unexpected token '" 
-    ++ (take len inp) ++ "'"
+    "unexpected token '" ++ (take len inp) ++ "' at " ++ showPos p
 
 -- Prints a string representation of the line and column of the given
 -- AlexPn type.
@@ -164,12 +177,15 @@ showPos (AlexPn _ l c) = show l ++ ":" ++ show c
 -- Tokenize the input string according to the above token definitions.
 -- On failure, 
 gettokens str = runAlex str $ do
-    let loop toks = do 
+    let loop tokPairs = do 
         tok <- alexMonadScan; 
         case tok of
-            T_EOF -> return (reverse toks)
-            _     -> do loop (tok:toks)
+            Token _ T_EOF   -> return (reverse tokPairs)
+            _               -> do loop (tok:tokPairs)
     loop []
+
+tokenUnwrap :: [Token] -> [(Pos, TokenClass)]
+tokenUnwrap = map (\(Token p t) -> (p,t))
 
 tokenize = do
     s <- getContents

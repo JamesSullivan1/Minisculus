@@ -42,21 +42,21 @@
 
 module MinisculusParser where
 
+import MinisculusError
 import MinisculusLexer
+import MinisculusPos
 
 data ParseTree = ParseTree Prog
-data Prog =     R0 Stmt
-data Stmt =     R1 If Expr Then Stmt Else Stmt
+data Prog   =   R0 Stmt
+data Stmt   =   R1 If Expr Then Stmt Else Stmt
             |   R2 While Expr Do Stmt
             |   R3 Input Identifier
             |   R4 Identifier Assign Expr
             |   R5 Write Expr
             |   R6 Begin StmtList
-            |   StmtError
 data StmtList = R7 Stmt Semicolon StmtList
             |   R8 End
-            |   StmtListError Stmt
-data Expr =     R9 Term MoreExpr
+data Expr   =   R9 Term MoreExpr
 data MoreExpr = R10 Add Expr
             |   R11 Sub Expr
             |   R12
@@ -88,90 +88,127 @@ data Div = Div
 data LPar = LPar
 data RPar = RPar
 
-parse :: [Token] -> (ParseTree, [Token])
-
+parse :: [(Pos,TokenClass)] -> (ParseTree, [(Pos,TokenClass)])
+parse [] = error "Parsing Error - Empty token list"
 parse ts = ((ParseTree s), ts1) where
     (s,ts1) = prog ts
 
-prog :: [Token] -> (Prog, [Token])
+prog :: [(Pos,TokenClass)] -> (Prog, [(Pos,TokenClass)])
+prog [] = error "Parsing Error - Empty token list"
 prog ts = ((R0 s), ts1) where
     (s,ts1) = stmt ts
 
-stmt :: [Token] -> (Stmt, [Token])
-stmt (T_If:ts) = ((R1 If e Then s1 Else s2), ts3) where
+stmt :: [(Pos,TokenClass)] -> (Stmt, [(Pos,TokenClass)])
+stmt ((_,T_If):ts) =
+    ((R1 If e Then s1 Else s2), ts3) where
     (e,ts1) = expr ts
     (s1,ts2) = stmt $ _stmt1 ts1
     (s2,ts3) = stmt $ _stmt2 ts2
-    _stmt1 (T_Then:ts) = ts
+    _stmt1 ((_,T_Then):ts) = ts
     _stmt1 ts = ts
-    _stmt2 (T_Else:ts) = ts
+    _stmt2 ((_,T_Else):ts) = ts
     _stmt2 ts = ts
-stmt (T_While:ts) = ((R2 While e Do s), ts2) where 
+stmt ((_,T_While):ts) = 
+    ((R2 While e Do s), ts2) where 
     (e,ts1) = expr ts 
     (s,ts2) = stmt $ _stmt1 ts1
-    _stmt1 (T_Do:ts) = ts
+    _stmt1 ((_,T_Do):ts) = ts
     _stmt1 ts = ts
-stmt (T_Input:(T_Identifier str:ts)) = ((R3 Input (Identifier str)), ts)
-stmt (T_Identifier str:ts) = ((R4 (Identifier str) Assign e), ts1) where
+stmt ((_,T_Input):((_,T_Identifier str):ts)) = 
+    ((R3 Input (Identifier str)), ts)
+stmt ((_,T_Identifier str):ts) = 
+    ((R4 (Identifier str) Assign e), ts1) where
     (e,ts1) = expr $ _stmt1 ts
-    _stmt1 (T_Assign:ts) = ts
+    _stmt1 ((_,T_Assign):ts) = ts
     _stmt1 ts = ts
-stmt (T_Write:ts) = ((R5 Write e), ts1) where
+stmt ((_,T_Write):ts) = 
+    ((R5 Write e), ts1) where
     (e,ts1) = expr ts
-stmt (T_Begin:ts) = ((R6 Begin l), ts1) where
+stmt ((_,T_Begin):ts) = 
+    ((R6 Begin l), ts1) where
     (l,ts1) = stmtlist ts 
-stmt (t:ts) = (StmtError,ts)
+stmt ((p,t):ts) =
+    error $ parseError p t stmtExpected
 
-stmtlist :: [Token] -> (StmtList, [Token])
-stmtlist (T_End:ts) = ((R8 End), ts)
+stmtlist :: [(Pos,TokenClass)] -> (StmtList, [(Pos,TokenClass)])
+stmtlist ((_,T_End):ts) = 
+    ((R8 End), ts)
 -- Look ahead by one to see if we're entering a statement
-stmtlist (T_If:ts)              = doStmt (T_If:ts)
-stmtlist (T_While:ts)           = doStmt (T_While:ts)
-stmtlist (T_Input:ts)           = doStmt (T_Input:ts)
-stmtlist (T_Identifier str:ts)  = doStmt (T_Identifier str:ts)
-stmtlist (T_Write:ts)           = doStmt (T_Write:ts)
-stmtlist (T_Begin:ts)           = doStmt (T_Begin:ts)
-stmtlist ts = (StmtListError StmtError,ts)
-doStmt ts = do
-    let (s,ts1) = stmt ts;
-    case s of
-        StmtError   -> (StmtListError s, ts1)
-        _           -> ((R7 s Semicolon l), ts2) where
-            (l,ts2) = stmtlist $ _stmtlist1 ts1 
-            _stmtlist1 (T_Semicolon:ts) = ts
-            _stmtlist1 ts = ts
+stmtlist ((p,T_If):ts)              = doStmt ((p,T_If):ts)
+stmtlist ((p,T_While):ts)           = doStmt ((p,T_While):ts)
+stmtlist ((p,T_Input):ts)           = doStmt ((p,T_Input):ts)
+stmtlist ((p,T_Identifier str):ts)  = doStmt ((p,T_Identifier str):ts)
+stmtlist ((p,T_Write):ts)           = doStmt ((p,T_Write):ts)
+stmtlist ((p,T_Begin):ts)           = doStmt ((p,T_Begin):ts)
+stmtlist ((p,t):ts) = 
+    error $ parseError p t stmtListExpected 
+doStmt ts = 
+    ((R7 s Semicolon l), ts2) where
+    (s,ts1) = stmt ts
+    (l,ts2) = stmtlist $ _stmtlist1 ts1 
+    _stmtlist1 ((_,T_Semicolon):ts) = ts
+    _stmtlist1 ts = ts
 
-expr :: [Token] -> (Expr, [Token])
-expr ts = ((R9 t me), ts2) where
+expr :: [(Pos,TokenClass)] -> (Expr, [(Pos,TokenClass)])
+expr ts = 
+    ((R9 t me), ts2) where
     (t,ts1) = term ts
     (me,ts2) = moreExpr ts1
 
-moreExpr :: [Token] -> (MoreExpr, [Token])
-moreExpr (T_Add:ts) = ((R10 Add e), ts1) where
+moreExpr :: [(Pos,TokenClass)] -> (MoreExpr, [(Pos,TokenClass)])
+moreExpr ((_,T_Add):ts) = 
+    ((R10 Add e), ts1) where
     (e,ts1) = expr ts
-moreExpr (T_Sub:ts) = ((R11 Sub e), ts1) where
+moreExpr ((_,T_Sub):ts) = 
+    ((R11 Sub e), ts1) where
     (e,ts1) = expr ts
-moreExpr ts = ((R12), ts)
+moreExpr ts = 
+    ((R12), ts)
 
-term :: [Token] -> (Term, [Token])
-term ts = ((R13 f mt), ts2) where
+term :: [(Pos,TokenClass)] -> (Term, [(Pos,TokenClass)])
+term ts = 
+    ((R13 f mt), ts2) where
     (f,ts1) = factor ts
     (mt,ts2) = moreTerm ts1
 
-moreTerm :: [Token] -> (MoreTerm, [Token])
-moreTerm (T_Mul:ts) = ((R14 Mul t), ts1) where
+moreTerm :: [(Pos,TokenClass)] -> (MoreTerm, [(Pos,TokenClass)])
+moreTerm ((_,T_Mul):ts) = 
+    ((R14 Mul t), ts1) where
     (t,ts1) = term ts
-moreTerm (T_Div:ts) = ((R15 Div t), ts1) where
+moreTerm ((_,T_Div):ts) = 
+    ((R15 Div t), ts1) where
     (t,ts1) = term ts
-moreTerm ts = ((R16), ts)
+moreTerm ts = 
+    ((R16), ts)
 
-factor :: [Token] -> (Factor, [Token])
-factor (T_LPar:ts) = ((R17 LPar e RPar), ts2) where
+factor :: [(Pos,TokenClass)] -> (Factor, [(Pos,TokenClass)])
+factor ((_,T_LPar):ts) = 
+    ((R17 LPar e RPar), ts2) where
     (e,ts1) = expr ts
     ts2 = _factor1 ts1
-    _factor1 (T_RPar:ts) = ts
+    _factor1 ((_,T_RPar):ts) = ts
     _factor1 ts = ts
-factor (T_Identifier str:ts) = ((R18 (Identifier str)), ts)
-factor (T_Num n:ts) = ((R19 (Num n)), ts)
-factor (T_Sub:(T_Num n:ts)) = ((R20 Sub (Num n)), ts)
+factor ((_,T_Identifier str):ts) = 
+    ((R18 (Identifier str)), ts)
+factor ((_,T_Num n):ts) = 
+    ((R19 (Num n)), ts)
+factor ((_,T_Sub):((_,T_Num n):ts)) = 
+    ((R20 Sub (Num n)), ts)
+
+{- Error messages detailing the set of acceptable next symbols for each
+ - given state. IE, the first sets of each state.
+ -}
+stmtExpected        = "if, while, input, [identifier], write, or begin"
+progExpected        = stmtExpected
+parseExpected       = progExpected
+factorExpected      = "(, [identifier], or [number]"
+termExpected        = factorExpected
+exprExpected        = termExpected
+stmtListExpected    = "end, " ++ stmtExpected
+moreExprExpected    = "+, -, " ++ termExpected
+moreTermExpected    = "*, /, " ++ factorExpected
+
+parseError p s expected = parsingError p msg where
+    msg = "unexpected token '" ++ show s ++ "' (expected " ++
+        expected ++ ")"
 

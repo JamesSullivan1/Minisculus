@@ -81,6 +81,7 @@ module Main where
 import Control.Exception
 import Data.Either
 import MinisculusAST
+import MinisculusError
 import MinisculusLexer
 import MinisculusParser
 import System.Environment
@@ -96,12 +97,8 @@ main = do
         s <- hGetContents file
         let t = gettokens s
         case t of
-            Left e  -> error e 
+            Left e  -> lexingError e 
             Right l -> do
-                let (pt, toks) = parse l
-                if toks == [] then
-                    print (fromParseTree pt)
-                else 
-                    error ("Parse Error on token " ++ show (head toks) 
-                        ++ "\nNot Processed: " ++ show toks)
+                let (pt, toks) = parse $ tokenUnwrap l
+                print $ fromParseTree pt 
 
