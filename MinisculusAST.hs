@@ -1,8 +1,22 @@
-module AST where
+{-
+    Minisculus AST 
+    ================
+    James Sullivan - 10095183
+    <sullivan.james.f@gmail.com>
+    CPSC 411 - W2015 - University of Calgary
 
-import ParseTree
+    Defines the AST data structure for the Minisculus Language.
 
-data AST = AST A_Prog
+    Includes a function fromParseTree :: ParseTree -> AST that
+    transforms a completed parse tree to an AST.
+
+ -}
+
+module MinisculusAST where
+
+import MinisculusParser
+
+data AST    = AST A_Prog
 data A_Prog = A_Prog A_Stmt
 data A_Stmt = A_IfThenElse A_Expr A_Stmt A_Stmt
             | A_While A_Expr A_Stmt
@@ -19,13 +33,13 @@ data MoreA_Expr = A_Add A_Expr
 data A_Term = A_Term A_Factor MoreA_Term
 data A_Factor = A_LPar A_Expr A_RPar
             | Var A_Identifier
-            | Const AST.A_Num
+            | Const MinisculusAST.A_Num
 data MoreA_Term = A_Mul A_Term
             | A_Div A_Term
             | A_EndMT
 data A_RPar = A_RPar 
 data A_Identifier = A_Identifier String
-data A_Num = A_Num Int 
+data A_Num  = A_Num Int 
 
 fromParseTree :: ParseTree -> AST
 fromParseTree (ParseTree p) = AST (fromProg p)
@@ -74,9 +88,9 @@ fromFactor (R17 LPar e RPar) =
     A_LPar (fromExpr e) A_RPar
 fromFactor (R18 (Identifier s)) =
     Var (A_Identifier s)
-fromFactor (R19 (ParseTree.Num n)) =
+fromFactor (R19 (MinisculusParser.Num n)) =
     Const (A_Num n)
-fromFactor (R20 Sub (ParseTree.Num n)) =
+fromFactor (R20 Sub (MinisculusParser.Num n)) =
     Const (A_Num (-1 * n))
 
 instance Show AST where

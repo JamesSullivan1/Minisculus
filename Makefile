@@ -1,10 +1,10 @@
 CC=ghc
 LX=alex
 
-default : clean MinisculusParser
+default : clean MinisculusParser 
 
-MinisculusParser: MinisculusLexer.hs AST.hs ParseTree.hs MinisculusParser.hs
-	$(CC) MinisculusParser.hs
+MinisculusParser: MinisculusLexer.hs MinisculusAST.hs MinisculusParser.hs Main.hs 
+	$(CC) Main.hs -o MinisculusParser
 
 MinisculusLexer.hs: MinisculusLexer.x
 	$(LX) MinisculusLexer.x

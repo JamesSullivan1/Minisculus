@@ -1,0 +1,20 @@
+/* Factorial Program in Minisculus 
+
+    % James Sullivan <sullivan.james.f@gmail.com>
+    % 10095183
+
+*/
+
+begin
+    input a;    % Assume a >= 0
+    if a then
+        begin
+            b := 1;
+            while a do
+                b := b * a;
+                a := a + -1;
+            write a;
+        end
+    else
+        b := 0;
+end

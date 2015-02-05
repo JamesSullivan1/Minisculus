@@ -1,24 +1,19 @@
 {-
-    Minisculus Recursive Descent Parser 
+    Minisculus Parse Tree 
     ================
     James Sullivan - 10095183
     <sullivan.james.f@gmail.com>
     CPSC 411 - W2015 - University of Calgary
 
-    Usage
-    =====
+    Defines the ParseTree data structure for the Minisculus Parser, and
+    a parsing function to take a list of Tokens and produce a pair
+    consisting of the ParseTree built and the leftover tokens.
 
-    ./MinisculusParser file 
+    A valid parse is a parse that results in an empty remaining token
+    list; if this list is not empty, the input is not grammatically
+    correct.
 
-    Print the AST of the given Minisculus source to stdout, or display
-    an error message on a lexical/grammatical failure.
-
-    Grammar 
-    ======
-
-    The following LL(1) Grammar is used for Parsing. The `parse`
-    function emits a Parse Tree that follows this grammar's form, which
-    can be easily transformed into an AST.
+    This Parse Tree corresponds to the following LL(1) grammar: 
 
     prog -> stmt.
     stmt -> IF expr THEN stmt ELSE stmt
@@ -42,49 +37,56 @@
                 | NUM
                 | SUB NUM.
 
-    AST Data Type
-    =============
 
-    The AST generated from the Parse Tree is of the form:
-
-    data AST        = AST A_Prog
-    data A_Prog     = A_Prog A_Stmt
-    data A_Stmt     = A_IfThenElse A_Expr A_Stmt A_Stmt
-                    | A_While A_Expr A_Stmt
-                    | A_Input A_Identifier
-                    | A_Assign A_Identifier A_Expr
-                    | A_Write A_Expr
-                    | A_Begin A_StmtList
-    data A_StmtList = A_Semicolon A_Stmt A_StmtList
-                    | A_EndSL
-    data A_Expr     = A_Expr A_Term MoreA_Expr
-    data MoreA_Expr = A_Add A_Expr
-                    | A_Sub A_Expr
-                    | A_EndME
-    data A_Term     = A_Term A_Factor MoreA_Term
-    data A_Factor   = A_LPar A_Expr A_RPar
-                    | Var A_Identifier
-                    | Const AST.A_Num
-    data MoreA_Term = A_Mul A_Term
-                    | A_Div A_Term
-                    | A_EndMT
-    data A_RPar     = A_RPar 
-    data A_Identifier = A_Identifier String
-    data A_Num      = A_Num Int 
-
-    Every AST is semantically equivalent to exactly one Parse Tree.
-        
 -}
 
-module Main where
+module MinisculusParser where
 
-import AST
-import Control.Exception
-import Data.Either
 import MinisculusLexer
-import ParseTree
-import System.Environment
-import System.IO
+
+data ParseTree = ParseTree Prog
+data Prog =     R0 Stmt
+data Stmt =     R1 If Expr Then Stmt Else Stmt
+            |   R2 While Expr Do Stmt
+            |   R3 Input Identifier
+            |   R4 Identifier Assign Expr
+            |   R5 Write Expr
+            |   R6 Begin StmtList
+            |   StmtError
+data StmtList = R7 Stmt Semicolon StmtList
+            |   R8 End
+            |   StmtListError Stmt
+data Expr =     R9 Term MoreExpr
+data MoreExpr = R10 Add Expr
+            |   R11 Sub Expr
+            |   R12
+data Term =     R13 Factor MoreTerm
+data MoreTerm = R14 Mul Term
+            |   R15 Div Term
+            |   R16
+data Factor =   R17 LPar Expr RPar
+            |   R18 Identifier
+            |   R19 MinisculusParser.Num
+            |   R20 Sub MinisculusParser.Num
+data If = If
+data Then = Then
+data Else = Else
+data While = While
+data Do = Do
+data Input = Input
+data Identifier = Identifier String
+data Num = Num Int
+data Assign = Assign
+data Write = Write
+data Begin = Begin
+data End = End
+data Semicolon = Semicolon
+data Add = Add
+data Sub = Sub
+data Mul = Mul
+data Div = Div
+data LPar = LPar
+data RPar = RPar
 
 parse :: [Token] -> (ParseTree, [Token])
 
@@ -95,6 +97,7 @@ prog :: [Token] -> (Prog, [Token])
 prog ts = ((R0 s), ts1) where
     (s,ts1) = stmt ts
 
+stmt :: [Token] -> (Stmt, [Token])
 stmt (T_If:ts) = ((R1 If e Then s1 Else s2), ts3) where
     (e,ts1) = expr ts
     (s1,ts2) = stmt $ _stmt1 ts1
@@ -119,6 +122,7 @@ stmt (T_Begin:ts) = ((R6 Begin l), ts1) where
     (l,ts1) = stmtlist ts 
 stmt (t:ts) = (StmtError,ts)
 
+stmtlist :: [Token] -> (StmtList, [Token])
 stmtlist (T_End:ts) = ((R8 End), ts)
 -- Look ahead by one to see if we're entering a statement
 stmtlist (T_If:ts)              = doStmt (T_If:ts)
@@ -137,26 +141,31 @@ doStmt ts = do
             _stmtlist1 (T_Semicolon:ts) = ts
             _stmtlist1 ts = ts
 
+expr :: [Token] -> (Expr, [Token])
 expr ts = ((R9 t me), ts2) where
     (t,ts1) = term ts
     (me,ts2) = moreExpr ts1
 
+moreExpr :: [Token] -> (MoreExpr, [Token])
 moreExpr (T_Add:ts) = ((R10 Add e), ts1) where
     (e,ts1) = expr ts
 moreExpr (T_Sub:ts) = ((R11 Sub e), ts1) where
     (e,ts1) = expr ts
 moreExpr ts = ((R12), ts)
 
+term :: [Token] -> (Term, [Token])
 term ts = ((R13 f mt), ts2) where
     (f,ts1) = factor ts
     (mt,ts2) = moreTerm ts1
 
+moreTerm :: [Token] -> (MoreTerm, [Token])
 moreTerm (T_Mul:ts) = ((R14 Mul t), ts1) where
     (t,ts1) = term ts
 moreTerm (T_Div:ts) = ((R15 Div t), ts1) where
     (t,ts1) = term ts
 moreTerm ts = ((R16), ts)
 
+factor :: [Token] -> (Factor, [Token])
 factor (T_LPar:ts) = ((R17 LPar e RPar), ts2) where
     (e,ts1) = expr ts
     ts2 = _factor1 ts1
@@ -165,20 +174,4 @@ factor (T_LPar:ts) = ((R17 LPar e RPar), ts2) where
 factor (T_Identifier str:ts) = ((R18 (Identifier str)), ts)
 factor (T_Num n:ts) = ((R19 (Num n)), ts)
 factor (T_Sub:(T_Num n:ts)) = ((R20 Sub (Num n)), ts)
-
-main = do
-    args <- getArgs 
-    let fn = head args
-    file <- openFile fn ReadMode
-    s <- hGetContents file
-    let t = gettokens s
-    case t of
-        Left e  -> error e 
-        Right l -> do
-            let (pt, toks) = parse l
-            if toks == [] then
-                print (fromParseTree pt)
-            else 
-                error ("Parse Error on token " ++ show (head toks) ++
-                    "\nNot Processed: " ++ show toks)
 

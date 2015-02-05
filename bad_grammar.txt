@@ -1,0 +1,15 @@
+/* Bad Factorial Program in Minisculus 
+
+    % James Sullivan <sullivan.james.f@gmail.com>
+    % 10095183
+
+*/
+
+begin
+    input input a;    % Assume a >= 0
+    b := 1 while
+    while a do print write
+        b := b * a a;
+        a := a + -1 end;
+    write a;
+end
