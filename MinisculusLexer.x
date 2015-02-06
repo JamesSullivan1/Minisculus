@@ -99,7 +99,29 @@ data TokenClass  = T_Identifier String
             | T_RPar
             | T_Semicolon
             | T_EOF
-            deriving (Eq, Show)
+            deriving (Eq)
+
+instance Show TokenClass where
+    show (T_Identifier s) = show s
+    show (T_Num n) = show n
+    show (T_If) = "if"
+    show (T_Then) = "then"
+    show (T_Else) = "else"
+    show (T_While) = "while"
+    show (T_Do) = "do"
+    show (T_Input) = "input"
+    show (T_Begin) = "begin"
+    show (T_End) = "end"
+    show (T_Write) = "write"
+    show (T_Add) = "+"
+    show (T_Assign) = ":="
+    show (T_Sub) = "-"
+    show (T_Mul) = "*"
+    show (T_Div) = "/"
+    show (T_LPar) = "("
+    show (T_RPar) = ")"
+    show (T_Semicolon) = ";"
+    show (T_EOF) = "<EOF>"
 
 alexEOF :: Alex Token
 alexEOF = do
