@@ -23,21 +23,13 @@ data A_Stmt = A_IfThenElse A_Expr A_Stmt A_Stmt
             | A_Input A_Identifier
             | A_Assign A_Identifier A_Expr
             | A_Write A_Expr
-            | A_Begin A_StmtList
-data A_StmtList = A_Semicolon A_Stmt A_StmtList
-            | A_EndSL
-data A_Expr = A_Expr A_Term MoreA_Expr
-data MoreA_Expr = A_Add A_Expr
-            | A_Sub A_Expr
-            | A_EndME
-data A_Term = A_Term A_Factor MoreA_Term
-data A_Factor = A_LPar A_Expr A_RPar
-            | Var A_Identifier
-            | Const MinisculusAST.A_Num
-data MoreA_Term = A_Mul A_Term
-            | A_Div A_Term
-            | A_EndMT
-data A_RPar = A_RPar 
+            | A_Block [A_Stmt]
+data A_Expr = A_Add A_Expr A_Expr 
+            | A_Sub A_Expr A_Expr
+            | A_Mul A_Expr A_Expr
+            | A_Div A_Expr A_Expr
+            | A_Var A_Identifier
+            | A_Const A_Num 
 data A_Identifier = A_Identifier String
 data A_Num  = A_Num Int 
 
@@ -57,41 +49,35 @@ fromStmt (R4 (Identifier s) Assign e) =
 fromStmt (R5 Write e) =
     A_Write (fromExpr e)
 fromStmt (R6 Begin l) =
-    A_Begin (fromStmtList l)
+    A_Block (fromStmtList l)
 
 fromStmtList (R7 s Semicolon l) =
-    A_Semicolon (fromStmt s) (fromStmtList l)
+    (fromStmt s):(fromStmtList l)
 fromStmtList (R8 End) =
-    A_EndSL 
+    []
 
-fromExpr (R9 t me) =
-    A_Expr (fromTerm t) (fromMoreExpr me)
+fromExpr (R9 t (R10 Add e)) =
+    A_Add (fromTerm t) (fromExpr e)
+fromExpr (R9 t (R11 Sub e)) = 
+    A_Sub (fromTerm t) (fromExpr e)
+fromExpr (R9 t (R12)) =
+    fromTerm t
 
-fromMoreExpr (R10 Add e) =
-    A_Add (fromExpr e)
-fromMoreExpr (R11 Sub e) =
-    A_Sub (fromExpr e)
-fromMoreExpr (R12) =
-    A_EndME
-
-fromTerm (R13 f mt) =
-    A_Term (fromFactor f) (fromMoreTerm mt)
-
-fromMoreTerm (R14 Mul t) =
-    A_Mul (fromTerm t)
-fromMoreTerm (R15 Div t) =
-    A_Div (fromTerm t)
-fromMoreTerm (R16) =
-    A_EndMT
+fromTerm (R13 f (R14 Mul t)) =
+    A_Mul (fromFactor f) (fromTerm t)
+fromTerm (R13 f (R15 Div t)) =
+    A_Div (fromFactor f) (fromTerm t)
+fromTerm (R13 f (R16)) =
+    fromFactor f
 
 fromFactor (R17 LPar e RPar) =
-    A_LPar (fromExpr e) A_RPar
+    fromExpr e
 fromFactor (R18 (Identifier s)) =
-    Var (A_Identifier s)
+    A_Var (A_Identifier s)
 fromFactor (R19 (MinisculusParser.Num n)) =
-    Const (A_Num n)
+    A_Const (A_Num n)
 fromFactor (R20 Sub (MinisculusParser.Num n)) =
-    Const (A_Num (-1 * n))
+    A_Const (A_Num (-1 * n))
 
 instance Show AST where
     show (AST a) = "PROGRAM (\n" ++ show a ++ ") ENDPROGRAM"
@@ -100,37 +86,23 @@ instance Show A_Prog where
 instance Show A_Stmt where
     show (A_IfThenElse e s1 s2) = "IF " ++ show e ++ 
         " THEN (\n" ++ show s1 ++ ") " ++
-        "ELSE (\n" ++ show s2 ++ "\n) ENDELSE"
+        "ELSE (\n" ++ show s2 ++ ") ENDELSE;\n"
     show (A_While e s) = "WHILE " ++ show e ++ " DO (\n" ++ show s 
-        ++ "\n) ENDWHILE"
-    show (A_Input i) = "INPUT (" ++ show i ++ ")"
+        ++ ") ENDWHILE;\n"
+    show (A_Input i) = "INPUT (" ++ show i ++ ");\n"
     show (A_Assign i e) = "(" ++
-        show i ++ " := " ++ show e ++ ")"
+        show i ++ " := " ++ show e ++ ");\n"
     show (A_Write e) = "(" ++
-        "WRITE " ++ show e ++ ")"
-    show (A_Begin l) = "BEGIN [\n" ++ show l ++ "] END\n"
-instance Show A_StmtList where
-    show (A_Semicolon s l) = "" ++
-        show s ++ ";" ++ maybeNewLine l ++ show l where
-        maybeNewLine (A_Semicolon s l) = "\n"
-        maybeNewLine (A_EndSL) = ""
-    show (A_EndSL) = "\n"
+        "WRITE " ++ show e ++ ");\n"
+    show (A_Block l) = "BEGIN [\n" ++ foldr1 (++) (map show l) ++ 
+        "] END;\n"
 instance Show A_Expr where
-    show (A_Expr t me) = show t ++ show me
-instance Show A_Term where
-    show (A_Term f mt) = show f ++ show mt
-instance Show MoreA_Expr where
-    show (A_Add t) = " + " ++ show t
-    show (A_Sub t) = " - " ++ show t
-    show (A_EndME) = ""
-instance Show MoreA_Term where
-    show (A_Mul t) = " * " ++ show t
-    show (A_Div t) = " / " ++ show t
-    show (A_EndMT) = ""
-instance Show A_Factor where
-    show (A_LPar e r) = "(" ++ show e ++ ")"
-    show (Var i) = "(" ++ show i ++ ")"
-    show (Const n) = "(" ++ show n ++ ")"
+    show (A_Add e t) = show e ++ " + " ++ show t
+    show (A_Sub e t) = show e ++ " - " ++ show t
+    show (A_Mul e t) = show e ++ " * " ++ show t
+    show (A_Div e t) = show e ++ " / " ++ show t
+    show (A_Var i) = "(" ++ show i ++ ")"
+    show (A_Const n) = "(" ++ show n ++ ")"
 instance Show A_Identifier where
     show (A_Identifier s) = "Var " ++ show s
 instance Show A_Num where
