@@ -10,8 +10,8 @@
 
     ./MinisculusParser file 
 
-    Print the AST of the given Minisculus source to stdout, or display
-    an error message on a lexical/grammatical failure.
+    Emits the stack code for the given Minisculus source to stdout. 
+    Displays an error message if the source code is invalid.
 
     Grammar 
     ======
@@ -47,30 +47,22 @@
 
     The AST generated from the Parse Tree is of the form:
 
-    data AST        = AST A_Prog
-    data A_Prog     = A_Prog A_Stmt
-    data A_Stmt     = A_IfThenElse A_Expr A_Stmt A_Stmt
-                    | A_While A_Expr A_Stmt
-                    | A_Input A_Identifier
-                    | A_Assign A_Identifier A_Expr
-                    | A_Write A_Expr
-                    | A_Begin A_StmtList
-    data A_StmtList = A_Semicolon A_Stmt A_StmtList
-                    | A_EndSL
-    data A_Expr     = A_Expr A_Term MoreA_Expr
-    data MoreA_Expr = A_Add A_Expr
-                    | A_Sub A_Expr
-                    | A_EndME
-    data A_Term     = A_Term A_Factor MoreA_Term
-    data A_Factor   = A_LPar A_Expr A_RPar
-                    | Var A_Identifier
-                    | Const AST.A_Num
-    data MoreA_Term = A_Mul A_Term
-                    | A_Div A_Term
-                    | A_EndMT
-    data A_RPar     = A_RPar 
+    data AST    = AST A_Prog
+    data A_Prog = A_Prog A_Stmt
+    data A_Stmt = A_IfThenElse A_Expr A_Stmt A_Stmt
+                | A_While A_Expr A_Stmt
+                | A_Input A_Identifier
+                | A_Assign A_Identifier A_Expr
+                | A_Write A_Expr
+                | A_Block [A_Stmt]
+    data A_Expr = A_Add A_Expr A_Expr 
+                | A_Sub A_Expr A_Expr
+                | A_Mul A_Expr A_Expr
+                | A_Div A_Expr A_Expr
+                | A_Var A_Identifier
+                | A_Const A_Num 
     data A_Identifier = A_Identifier String
-    data A_Num      = A_Num Int 
+    data A_Num  = A_Num Int 
 
     Every AST is semantically equivalent to exactly one Parse Tree.
         
