@@ -1,13 +1,13 @@
 CC=ghc
 LX=alex
 
-default : clean MinisculusParser 
+default : clean MinisculusCodeGenerator 
 
-MinisculusParser: MinisculusLexer.hs MinisculusAST.hs MinisculusParser.hs MinisculusError.hs Main.hs 
-	$(CC) Main.hs -o MinisculusParser
+MinisculusCodeGenerator: MinisculusLexer.hs MinisculusParser.hs MinisculusAST.hs MinisculusCodeGenerator.hs MinisculusError.hs Main.hs
+	$(CC) Main.hs -o MinisculusCodeGenerator
 
 MinisculusLexer.hs: MinisculusLexer.x
 	$(LX) MinisculusLexer.x
 
 clean: 
-	-rm MinisculusParser MinisculusLexer.hs *.o *.hi
+	-rm MinisculusCodeGenerator MinisculusLexer.hs *.o *.hi

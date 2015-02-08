@@ -104,7 +104,7 @@ instance Show A_Expr where
     show (A_Var i) = "(" ++ show i ++ ")"
     show (A_Const n) = "(" ++ show n ++ ")"
 instance Show A_Identifier where
-    show (A_Identifier s) = "Var " ++ show s
+    show (A_Identifier s) = show s
 instance Show A_Num where
-    show (A_Num n) = "Const " ++ show n
+    show (A_Num n) = id show n
 

@@ -11,9 +11,11 @@ begin
         begin
             b := 1;
             while a do
+            begin
                 b := b * a;
                 a := a + -1;
-            write a;
+            end
+            write b;
         end
     else
         b := 0;

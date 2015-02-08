@@ -81,6 +81,7 @@ module Main where
 import Control.Exception
 import Data.Either
 import MinisculusAST
+import MinisculusCodeGenerator
 import MinisculusError
 import MinisculusLexer
 import MinisculusParser
@@ -100,5 +101,5 @@ main = do
             Left e  -> lexingError e 
             Right l -> do
                 let (pt, toks) = parse $ tokenUnwrap l
-                print $ fromParseTree pt 
+                putStrLn $ generateCode 0 $ fromParseTree pt 
 
