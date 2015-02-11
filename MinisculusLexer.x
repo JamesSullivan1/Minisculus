@@ -192,6 +192,11 @@ lexError :: AlexInput -> Int -> Alex Token
 lexError (p, _, _, inp) len = alexError $ 
     "unexpected token '" ++ (take len inp) ++ "' at " ++ showPos p
 
+-- Raises an alexError with an error message indicating the file has
+-- ended while the lexer is still within a multiline comment.
+commentError = alexError $ 
+    "file ended before the end of a multiline comment block"
+
 -- Prints a string representation of the line and column of the given
 -- AlexPn type.
 showPos (AlexPn _ l c) = show l ++ ":" ++ show c
@@ -202,7 +207,11 @@ gettokens str = runAlex str $ do
     let loop tokPairs = do 
         tok <- alexMonadScan; 
         case tok of
-            Token _ T_EOF   -> return (reverse tokPairs)
+            Token _ T_EOF   -> do   cdepth <- getCommentDepth
+                                    if (cdepth > 0) then 
+                                        commentError
+                                    else
+                                        return (reverse tokPairs)
             _               -> do loop (tok:tokPairs)
     loop []
 
