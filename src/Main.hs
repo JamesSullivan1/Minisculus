@@ -8,7 +8,7 @@
     Usage
     =====
 
-    ./MinisculusParser file 
+    ./mcc file 
 
     Emits the stack code for the given Minisculus source to stdout. 
     Displays an error message if the source code is invalid.
@@ -16,9 +16,9 @@
     Grammar 
     ======
 
-    The following LL(1) Grammar is used for Parsing. The `parse`
-    function emits a Parse Tree that follows this grammar's form, which
-    can be easily transformed into an AST.
+    The following LL(1) and Recursive Descent Grammar is used for
+    Parsing. The `parse` function emits a Parse Tree that follows this
+    grammar's form, which can be easily transformed into an AST.
 
     prog -> stmt.
     stmt -> IF expr THEN stmt ELSE stmt
@@ -27,8 +27,9 @@
                 | ID ASSIGN expr
                 | WRITE expr
                 | BEGIN stmtlist.
-    stmtlist -> stmt SEMICOLON stmtlist 
+    stmtlist -> stmt semicolon stmtlist 
                 | END.
+    semicolon -> SEMICOLON.
     expr -> term moreexpr.
     moreexpr -> ADD expr 
                 | SUB expr
@@ -37,10 +38,11 @@
     moreterm -> MUL term 
                 | DIV term
                 | .
-    factor -> LPAR expr RPAR
+    factor -> LPAR expr rpar 
                 | ID
                 | NUM
                 | SUB NUM.
+    rpar -> RPAR.
 
     AST Data Type
     =============
