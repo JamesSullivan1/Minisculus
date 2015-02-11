@@ -1,8 +1,9 @@
 {-
     Minisculus AST 
     ================
-    James Sullivan 
+    James Sullivan - 10095183
     <sullivan.james.f@gmail.com>
+    CPSC 411 - W2015 - University of Calgary
 
     Defines the AST data structure for the Minisculus Language.
 
@@ -50,32 +51,32 @@ fromStmt (R5 Write e) =
 fromStmt (R6 Begin l) =
     A_Block (fromStmtList l)
 
-fromStmtList (R7 s Semicolon l) =
+fromStmtList (R7 s (R9 Semicolon) l) =
     (fromStmt s):(fromStmtList l)
 fromStmtList (R8 End) =
     []
 
-fromExpr (R9 t (R10 Add e)) =
+fromExpr (R10 t (R11 Add e)) =
     A_Add (fromTerm t) (fromExpr e)
-fromExpr (R9 t (R11 Sub e)) = 
+fromExpr (R10 t (R12 Sub e)) = 
     A_Sub (fromTerm t) (fromExpr e)
-fromExpr (R9 t (R12)) =
+fromExpr (R10 t (R13)) =
     fromTerm t
 
-fromTerm (R13 f (R14 Mul t)) =
+fromTerm (R14 f (R15 Mul t)) =
     A_Mul (fromFactor f) (fromTerm t)
-fromTerm (R13 f (R15 Div t)) =
+fromTerm (R14 f (R16 Div t)) =
     A_Div (fromFactor f) (fromTerm t)
-fromTerm (R13 f (R16)) =
+fromTerm (R14 f (R17)) =
     fromFactor f
 
-fromFactor (R17 LPar e RPar) =
+fromFactor (R18 LPar e (R22 RPar)) =
     fromExpr e
-fromFactor (R18 (Identifier s)) =
+fromFactor (R19 (Identifier s)) =
     A_Var (A_Identifier s)
-fromFactor (R19 (MinisculusParser.Num n)) =
+fromFactor (R20 (MinisculusParser.Num n)) =
     A_Const (A_Num n)
-fromFactor (R20 Sub (MinisculusParser.Num n)) =
+fromFactor (R21 Sub (MinisculusParser.Num n)) =
     A_Const (A_Num (-1 * n))
 
 instance Show AST where

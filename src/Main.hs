@@ -1,8 +1,9 @@
 {-
     Minisculus Recursive Descent Parser 
     ================
-    James Sullivan 
+    James Sullivan - 10095183
     <sullivan.james.f@gmail.com>
+    CPSC 411 - W2015 - University of Calgary
 
     Usage
     =====

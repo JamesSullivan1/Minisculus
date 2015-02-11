@@ -5,9 +5,10 @@ default : clean mcc
 
 mcc: MinisculusLexer.hs MinisculusParser.hs MinisculusAST.hs MinisculusCodeGenerator.hs MinisculusError.hs Main.hs
 	$(CC) Main.hs -o mcc 
+	-rm *.o *.hi 
 
 MinisculusLexer.hs: MinisculusLexer.x
 	$(LX) MinisculusLexer.x
 
 clean: 
-	-rm MinisculusCodeGenerator MinisculusLexer.hs *.o *.hi
+	-rm mcc MinisculusLexer.hs *.o *.hi
