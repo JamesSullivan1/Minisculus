@@ -1,13 +1,11 @@
-CC=ghc
-LX=alex
+default: src 
 
-default : clean MinisculusCodeGenerator 
+.PHONY: src
+src:
+	$(MAKE) -C src/
+	mv src/mcc .
 
-MinisculusCodeGenerator: MinisculusLexer.hs MinisculusParser.hs MinisculusAST.hs MinisculusCodeGenerator.hs MinisculusError.hs Main.hs
-	$(CC) Main.hs -o MinisculusCodeGenerator
+clean:
+	$(MAKE) -C src/ clean
+	-rm mcc 
 
-MinisculusLexer.hs: MinisculusLexer.x
-	$(LX) MinisculusLexer.x
-
-clean: 
-	-rm MinisculusCodeGenerator MinisculusLexer.hs *.o *.hi
