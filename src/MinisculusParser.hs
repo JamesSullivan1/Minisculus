@@ -1,9 +1,8 @@
 {-
     Minisculus Parse Tree 
     ================
-    James Sullivan - 10095183
+    James Sullivan
     <sullivan.james.f@gmail.com>
-    CPSC 411 - W2015 - University of Calgary
 
     Defines the ParseTree data structure for the Minisculus Parser, and
     a parsing function to take a list of Tokens and produce a pair

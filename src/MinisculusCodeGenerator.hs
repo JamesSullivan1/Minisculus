@@ -1,9 +1,8 @@
 {-
     Minisculus Stack Code Generator 
     ================
-    James Sullivan - 10095183
+    James Sullivan
     <sullivan.james.f@gmail.com>
-    CPSC 411 - W2015 - University of Calgary
 
     Implements a stack code generator for a Minisculus AST. The stack
     code is a sequence of either labels or instructions of the following
